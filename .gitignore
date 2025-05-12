@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Dependências
 node_modules/
 npm-debug.log
@@ -22,3 +23,6 @@ logs
 .vscode/
 *.swp
 *.swo 
+=======
+
+>>>>>>> 414a9dec64d05e077c69897380622b715a7d35f5
