@@ -1,79 +1,64 @@
-const createError = require('http-errors');
-const Produto = require('../models/Produto');
-const cache = require('../configs/cache');
+import { pool } from '../configs/database.js';
+import createError from 'http-errors';
 
-class ProdutoController {
-  static async listar(req, res, next) {
-    try {
-      const produtos = await Produto.findAll();
-      res.json(produtos);
-    } catch (error) {
-      next(createError(500, 'Erro ao listar produtos'));
-    }
+export const getProdutos = async (req, res, next) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM produtos');
+    res.json(rows);
+  } catch (error) {
+    next(createError(500, 'Erro ao buscar produtos'));
   }
+};
 
-  static async buscarPorId(req, res, next) {
-    try {
-      const produto = await Produto.findById(req.params.id);
-      if (!produto) {
-        return next(createError(404, 'Produto não encontrado'));
-      }
-      res.json(produto);
-    } catch (error) {
-      next(createError(500, 'Erro ao buscar produto'));
+export const getProdutoById = async (req, res, next) => {
+  try {
+    const [rows] = await pool.query('SELECT * FROM produtos WHERE id = ?', [req.params.id]);
+    if (rows.length === 0) {
+      return next(createError(404, 'Produto não encontrado'));
     }
+    res.json(rows[0]);
+  } catch (error) {
+    next(createError(500, 'Erro ao buscar produto'));
   }
+};
 
-  static async criar(req, res, next) {
-    try {
-      const { nome, descricao, preco } = req.body;
-      
-      if (!nome || !descricao || !preco) {
-        return next(createError(400, 'Todos os campos são obrigatórios'));
-      }
+export const createProduto = async (req, res, next) => {
+  const { nome, descricao, preco } = req.body;
+  try {
+    const [result] = await pool.query(
+      'INSERT INTO produtos (nome, descricao, preco) VALUES (?, ?, ?)',
+      [nome, descricao, preco]
+    );
+    res.status(201).json({ id: result.insertId, nome, descricao, preco });
+  } catch (error) {
+    next(createError(500, 'Erro ao criar produto'));
+  }
+};
 
-      const id = await Produto.create({ nome, descricao, preco });
-      cache.del('__express__/produtos');
-      
-      res.status(201).json({ id, nome, descricao, preco });
-    } catch (error) {
-      next(createError(500, 'Erro ao criar produto'));
+export const updateProduto = async (req, res, next) => {
+  const { nome, descricao, preco } = req.body;
+  try {
+    const [result] = await pool.query(
+      'UPDATE produtos SET nome = ?, descricao = ?, preco = ? WHERE id = ?',
+      [nome, descricao, preco, req.params.id]
+    );
+    if (result.affectedRows === 0) {
+      return next(createError(404, 'Produto não encontrado'));
     }
+    res.json({ id: req.params.id, nome, descricao, preco });
+  } catch (error) {
+    next(createError(500, 'Erro ao atualizar produto'));
   }
+};
 
-  static async atualizar(req, res, next) {
-    try {
-      const { nome, descricao, preco } = req.body;
-      
-      if (!nome || !descricao || !preco) {
-        return next(createError(400, 'Todos os campos são obrigatórios'));
-      }
-
-      const sucesso = await Produto.update(req.params.id, { nome, descricao, preco });
-      if (!sucesso) {
-        return next(createError(404, 'Produto não encontrado'));
-      }
-
-      cache.del('__express__/produtos');
-      res.json({ id: req.params.id, nome, descricao, preco });
-    } catch (error) {
-      next(createError(500, 'Erro ao atualizar produto'));
+export const deleteProduto = async (req, res, next) => {
+  try {
+    const [result] = await pool.query('DELETE FROM produtos WHERE id = ?', [req.params.id]);
+    if (result.affectedRows === 0) {
+      return next(createError(404, 'Produto não encontrado'));
     }
+    res.status(204).send();
+  } catch (error) {
+    next(createError(500, 'Erro ao deletar produto'));
   }
-
-  static async deletar(req, res, next) {
-    try {
-      const sucesso = await Produto.delete(req.params.id);
-      if (!sucesso) {
-        return next(createError(404, 'Produto não encontrado'));
-      }
-
-      cache.del('__express__/produtos');
-      res.status(204).send();
-    } catch (error) {
-      next(createError(500, 'Erro ao deletar produto'));
-    }
-  }
-}
-
-module.exports = ProdutoController; 
+}; 

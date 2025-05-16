@@ -1,12 +1,16 @@
-const express = require('express');
+import express from 'express';
+import { getProdutos, getProdutoById, createProduto, updateProduto, deleteProduto } from '../controllers/produtoController.js';
+import cacheMiddleware from '../middlewares/cacheMiddleware.js';
+
 const router = express.Router();
-const ProdutoController = require('../controllers/ProdutoController');
-const cacheMiddleware = require('../middlewares/cache');
 
-router.get('/', cacheMiddleware(30), ProdutoController.listar);
-router.get('/:id', ProdutoController.buscarPorId);
-router.post('/', ProdutoController.criar);
-router.put('/:id', ProdutoController.atualizar);
-router.delete('/:id', ProdutoController.deletar);
+// Aplicando middleware de cache apenas para GET
+router.get('/', cacheMiddleware(), getProdutos);
+router.get('/:id', cacheMiddleware(), getProdutoById);
 
-module.exports = router; 
+// Rotas sem cache
+router.post('/', createProduto);
+router.put('/:id', updateProduto);
+router.delete('/:id', deleteProduto);
+
+export default router; 

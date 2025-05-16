@@ -1,28 +1,54 @@
-<<<<<<< HEAD
 # Dependências
 node_modules/
-npm-debug.log
-yarn-debug.log
-yarn-error.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
 
-# Ambiente
+# Arquivos de ambiente
 .env
 .env.local
 .env.*.local
-
-# Sistema
-.DS_Store
-Thumbs.db
+.env.development
+.env.test
+.env.production
+dotenv.env
 
 # Logs
 logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# IDE
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Diretórios de IDE/editores
 .idea/
 .vscode/
 *.swp
-*.swo 
-=======
+*.swo
+*.swn
+*.bak
 
->>>>>>> 414a9dec64d05e077c69897380622b715a7d35f5
+# Diretórios de build/compilação
+dist/
+build/
+coverage/
+
+# Arquivos de cache
+.cache/
+.npm/
+.eslintcache
+.stylelintcache
+
+# Outros
+*.pid
+*.seed
+*.pid.lock
+.tmp/
+temp/

@@ -1,27 +1,27 @@
-const chalk = require('chalk');
+import chalk from 'chalk';
 
 const logger = (req, res, next) => {
   const start = Date.now();
   
   res.on('finish', () => {
     const duration = Date.now() - start;
-    const source = res.getHeader('X-Cache') ? '[CACHE]' : '[DB]';
     const method = req.method;
-    const url = req.url;
+    const url = req.originalUrl;
     const status = res.statusCode;
     
-    const statusColor = status >= 500 ? 'red' : 
-                       status >= 400 ? 'yellow' : 
-                       status >= 300 ? 'cyan' : 
-                       status >= 200 ? 'green' : 'white';
+    let statusColor;
+    if (status >= 500) statusColor = chalk.red;
+    else if (status >= 400) statusColor = chalk.yellow;
+    else if (status >= 300) statusColor = chalk.cyan;
+    else if (status >= 200) statusColor = chalk.green;
+    else statusColor = chalk.white;
     
     console.log(
-      `${chalk.blue(source)} ${chalk.magenta(method)} ${chalk.cyan(url)} ` +
-      `${chalk[statusColor](status)} ${chalk.gray(`${duration}ms`)}`
+      `${chalk.blue(method)} ${url} ${statusColor(status)} ${chalk.gray(`${duration}ms`)}`
     );
   });
   
   next();
 };
 
-module.exports = logger; 
+export default logger; 
