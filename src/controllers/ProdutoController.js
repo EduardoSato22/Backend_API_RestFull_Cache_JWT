@@ -1,64 +1,100 @@
-import { pool } from '../configs/database.js';
+import { ProdutoService } from '../services/ProdutoService.js';
 import createError from 'http-errors';
+import { Router } from 'express';
 
-export const getProdutos = async (req, res, next) => {
+const router = Router();
+
+// Funções do controller
+const getProdutos = async (req, res, next) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM produtos');
-    res.json(rows);
+    const produtos = await ProdutoService.findAll();
+    res.json(produtos);
   } catch (error) {
-    next(createError(500, 'Erro ao buscar produtos'));
+    console.error('Erro detalhado:', error);
+    next(createError(500, `Erro ao listar produtos: ${error.message}`));
   }
 };
 
-export const getProdutoById = async (req, res, next) => {
+const getProdutoById = async (req, res, next) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM produtos WHERE id = ?', [req.params.id]);
-    if (rows.length === 0) {
+    const produto = await ProdutoService.findById(req.params.id);
+    if (!produto) {
       return next(createError(404, 'Produto não encontrado'));
     }
-    res.json(rows[0]);
+    res.json(produto);
   } catch (error) {
-    next(createError(500, 'Erro ao buscar produto'));
+    console.error('Erro detalhado:', error);
+    next(createError(500, `Erro ao buscar produto: ${error.message}`));
   }
 };
 
-export const createProduto = async (req, res, next) => {
-  const { nome, descricao, preco } = req.body;
+const createProduto = async (req, res, next) => {
+  const { nome, descricao, preco, estoque } = req.body;
+  
+  if (!nome || !descricao || !preco || !estoque) {
+    return next(createError(400, 'Todos os campos são obrigatórios'));
+  }
+
   try {
-    const [result] = await pool.query(
-      'INSERT INTO produtos (nome, descricao, preco) VALUES (?, ?, ?)',
-      [nome, descricao, preco]
-    );
-    res.status(201).json({ id: result.insertId, nome, descricao, preco });
+    const novoProduto = await ProdutoService.create({ nome, descricao, preco, estoque });
+    res.status(201).json(novoProduto);
   } catch (error) {
-    next(createError(500, 'Erro ao criar produto'));
+    console.error('Erro detalhado:', error);
+    next(createError(500, `Erro ao criar produto: ${error.message}`));
   }
 };
 
-export const updateProduto = async (req, res, next) => {
-  const { nome, descricao, preco } = req.body;
+const updateProduto = async (req, res, next) => {
+  const { nome, descricao, preco, estoque } = req.body;
+  
+  if (!nome || !descricao || !preco || !estoque) {
+    return next(createError(400, 'Todos os campos são obrigatórios'));
+  }
+
   try {
-    const [result] = await pool.query(
-      'UPDATE produtos SET nome = ?, descricao = ?, preco = ? WHERE id = ?',
-      [nome, descricao, preco, req.params.id]
-    );
-    if (result.affectedRows === 0) {
+    const produtoAtualizado = await ProdutoService.update(req.params.id, { nome, descricao, preco, estoque });
+    if (!produtoAtualizado) {
       return next(createError(404, 'Produto não encontrado'));
     }
-    res.json({ id: req.params.id, nome, descricao, preco });
+    res.json(produtoAtualizado);
   } catch (error) {
-    next(createError(500, 'Erro ao atualizar produto'));
+    console.error('Erro detalhado:', error);
+    next(createError(500, `Erro ao atualizar produto: ${error.message}`));
   }
 };
 
-export const deleteProduto = async (req, res, next) => {
+const deleteProduto = async (req, res, next) => {
   try {
-    const [result] = await pool.query('DELETE FROM produtos WHERE id = ?', [req.params.id]);
-    if (result.affectedRows === 0) {
+    const sucesso = await ProdutoService.delete(req.params.id);
+    if (!sucesso) {
       return next(createError(404, 'Produto não encontrado'));
     }
     res.status(204).send();
   } catch (error) {
-    next(createError(500, 'Erro ao deletar produto'));
+    console.error('Erro detalhado:', error);
+    next(createError(500, `Erro ao deletar produto: ${error.message}`));
   }
-}; 
+};
+
+const patchProduto = async (req, res, next) => {
+  try {
+    const produtoAtualizado = await ProdutoService.patch(req.params.id, req.body);
+    if (!produtoAtualizado) {
+      return next(createError(404, 'Produto não encontrado'));
+    }
+    res.json(produtoAtualizado);
+  } catch (error) {
+    console.error('Erro detalhado:', error);
+    next(createError(500, `Erro ao atualizar produto: ${error.message}`));
+  }
+};
+
+// Rotas
+router.get('/', getProdutos);
+router.get('/:id', getProdutoById);
+router.post('/', createProduto);
+router.put('/:id', updateProduto);
+router.delete('/:id', deleteProduto);
+router.patch('/:id', patchProduto);
+
+export default router; 

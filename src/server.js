@@ -1,49 +1,32 @@
-import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import createError from 'http-errors';
-import logger from './middlewares/logger.js';
-import clientesRoutes from './routes/clientes.js';
-import produtosRoutes from './routes/produtos.js';
+import produtosRouter from './routes/produtos.js';
+import clientesRouter from './routes/clientes.js';
+import { requestLogger } from './middlewares/logger.js';
 
 const app = express();
+const port = process.env.PORT || 3000;
 
 // Middlewares
 app.use(cors());
 app.use(express.json());
-app.use(logger);
+app.use(requestLogger);
 
 // Rotas
-app.get('/', (req, res) => {
-  res.json({ message: 'API ativa' });
-});
-
-app.use('/clientes', clientesRoutes);
-app.use('/produtos', produtosRoutes);
+app.use('/produtos', produtosRouter);
+app.use('/clientes', clientesRouter);
 
 // Tratamento de erros
-app.use((req, res, next) => {
-  next(createError(404, 'Rota não encontrada'));
-});
-
 app.use((err, req, res, next) => {
-  res.status(err.status || 500);
-  res.json({
+  console.error(err.stack);
+  res.status(err.status || 500).json({
     error: {
-      message: err.message,
+      message: err.message || 'Erro interno do servidor',
       status: err.status || 500
     }
   });
 });
 
-const PORT = process.env.API_PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor rodando em http://localhost:${PORT}`);
+app.listen(port, () => {
+  console.log(`Servidor rodando na porta ${port}`);
 });
-
-// Teste básico
-console.log('Teste básico:');
-console.log('Para iniciar o servidor, use:');
-console.log('npm run dev');
-console.log('Para testar a API, use o Postman ou curl:');
-console.log('curl http://localhost:3000/');

@@ -1,15 +1,55 @@
 import NodeCache from 'node-cache';
 import chalk from 'chalk';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Função para salvar log em arquivo
+const saveLog = (message) => {
+  const logDir = path.join(__dirname, '../../logs');
+  const logFile = path.join(logDir, 'error.log');
+  const timestamp = new Date().toISOString();
+  const logMessage = `[${timestamp}] ${message}\n`;
+
+  // Cria o diretório de logs se não existir
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir);
+  }
+
+  // Adiciona o log ao arquivo
+  fs.appendFileSync(logFile, logMessage);
+};
 
 let cache;
 let cacheMiddleware;
 
+// Funções de cache
+export const getCache = (key) => {
+  if (!cache) return null;
+  return cache.get(key);
+};
+
+export const setCache = (key, value) => {
+  if (!cache) return false;
+  return cache.set(key, value);
+};
+
 try {
   // Criando uma instância do cache com TTL de 30 segundos
   cache = new NodeCache({ 
-    stdTTL: 30,
-    checkperiod: 10,
+    stdTTL: 30, // Tempo de vida padrão: 30 segundos
+    checkperiod: 5, // Verifica expiração a cada 5 segundos
     useClones: false
+  });
+
+  // Adiciona listener para eventos de expiração
+  cache.on('expired', (key, value) => {
+    const message = `[CACHE] Chave expirada automaticamente: ${key} (TTL: 30s)`;
+    console.log(chalk.yellow(message));
+    saveLog(message);
   });
 
   cacheMiddleware = () => {
@@ -27,11 +67,15 @@ try {
         const cachedResponse = cache.get(key);
 
         if (cachedResponse) {
-          console.log(chalk.green(`[CACHE] Dados recuperados do cache para: ${req.originalUrl}`));
+          const ttl = cache.getTtl(key);
+          const remainingTime = Math.ceil((ttl - Date.now()) / 1000);
+          const message = `[CACHE] Hit: ${req.originalUrl} (expira em ${remainingTime}s)`;
+          console.log(chalk.green(message));
           return res.json(cachedResponse);
         }
 
-        console.log(chalk.yellow(`[DB] Cache miss para: ${req.originalUrl}`));
+        const message = `[CACHE] Miss: ${req.originalUrl} (TTL: 30s)`;
+        console.log(chalk.yellow(message));
 
         // Sobrescreve o método json para interceptar a resposta
         const originalJson = res.json;
@@ -39,25 +83,32 @@ try {
           try {
             // Salva no cache antes de enviar a resposta
             cache.set(key, body);
-            console.log(chalk.blue(`[CACHE] Dados salvos no cache para: ${req.originalUrl}`));
+            const message = `[CACHE] Saved: ${req.originalUrl} (expira em 30s)`;
+            console.log(chalk.blue(message));
             
             // Chama o método original
             return originalJson.call(this, body);
           } catch (error) {
-            console.error(chalk.red(`[CACHE] Erro ao salvar no cache: ${error.message}`));
+            const message = `[CACHE] Erro ao salvar no cache: ${error.message}`;
+            console.error(chalk.red(message));
+            saveLog(message);
             return originalJson.call(this, body);
           }
         };
 
         next();
       } catch (error) {
-        console.error(chalk.red(`[CACHE] Erro no middleware: ${error.message}`));
+        const message = `[CACHE] Erro no middleware: ${error.message}`;
+        console.error(chalk.red(message));
+        saveLog(message);
         next();
       }
     };
   };
 } catch (error) {
-  console.error(chalk.red(`[CACHE] Erro fatal na inicialização do cache: ${error.message}`));
+  const message = `[CACHE] Erro fatal na inicialização do cache: ${error.message}`;
+  console.error(chalk.red(message));
+  saveLog(message);
   // Middleware que apenas passa para o próximo sem cache
   cacheMiddleware = () => (req, res, next) => next();
 }
@@ -65,7 +116,9 @@ try {
 // Função para limpar o cache
 export const clearCache = (pattern) => {
   if (!cache) {
-    console.error(chalk.red('[CACHE] Cache não inicializado'));
+    const message = '[CACHE] Cache não inicializado';
+    console.error(chalk.red(message));
+    saveLog(message);
     return;
   }
 
@@ -74,13 +127,18 @@ export const clearCache = (pattern) => {
       const keys = cache.keys();
       const matchingKeys = keys.filter(key => key.includes(pattern));
       cache.del(matchingKeys);
-      console.log(chalk.red(`[CACHE] Cache limpo para o padrão: ${pattern}`));
+      const message = `[CACHE] Invalidado: ${matchingKeys.length} chaves com padrão "${pattern}"`;
+      console.log(chalk.red(message));
     } else {
+      const keys = cache.keys();
       cache.flushAll();
-      console.log(chalk.red('[CACHE] Cache completamente limpo'));
+      const message = `[CACHE] Invalidado: ${keys.length} chaves`;
+      console.log(chalk.red(message));
     }
   } catch (error) {
-    console.error(chalk.red(`[CACHE] Erro ao limpar cache: ${error.message}`));
+    const message = `[CACHE] Erro ao limpar cache: ${error.message}`;
+    console.error(chalk.red(message));
+    saveLog(message);
   }
 };
 

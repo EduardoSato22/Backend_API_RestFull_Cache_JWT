@@ -9,10 +9,17 @@ CREATE TABLE IF NOT EXISTS clientes (
   idade INT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS produtos (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  nome VARCHAR(255) NOT NULL,
-  descricao VARCHAR(255) NOT NULL,
-  preco DECIMAL(10,2) NOT NULL,
-  data_atualizado DATETIME NOT NULL
+CREATE TABLE produtos (
+    id INT NOT NULL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    descricao TEXT,
+    preco DECIMAL(10,2) NOT NULL,
+    estoque INT NOT NULL,
+    data_atualizado DATETIME NOT NULL
 ); 
+
+DELETE FROM clientes WHERE id = 1;
+
+TRUNCATE TABLE clientes;
+DELETE FROM clientes;
+SELECT * FROM clientes;

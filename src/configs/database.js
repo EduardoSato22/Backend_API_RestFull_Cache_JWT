@@ -12,6 +12,7 @@ const dbConfig = {
   queueLimit: 0
 };
 
+// Log das configurações (sem a senha)
 console.log('Configurações do banco:', {
   ...dbConfig,
   password: '******' // Não mostrar a senha no log

@@ -1,24 +1,27 @@
-import { pool } from '../configs/database.js';
+import { ClienteService } from '../services/ClienteService.js';
 import createError from 'http-errors';
+import { Router } from 'express';
 import { clearCache } from '../middlewares/cacheMiddleware.js';
+
+const router = Router();
 
 export const getClientes = async (req, res, next) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM clientes');
-    res.json(rows);
+    const clientes = await ClienteService.findAll();
+    res.json(clientes);
   } catch (error) {
     console.error('Erro detalhado:', error);
-    next(createError(500, `Erro ao buscar clientes: ${error.message}`));
+    next(createError(500, `Erro ao listar clientes: ${error.message}`));
   }
 };
 
 export const getClienteById = async (req, res, next) => {
   try {
-    const [rows] = await pool.query('SELECT * FROM clientes WHERE id = ?', [req.params.id]);
-    if (rows.length === 0) {
+    const cliente = await ClienteService.findById(req.params.id);
+    if (!cliente) {
       return next(createError(404, 'Cliente não encontrado'));
     }
-    res.json(rows[0]);
+    res.json(cliente);
   } catch (error) {
     console.error('Erro detalhado:', error);
     next(createError(500, `Erro ao buscar cliente: ${error.message}`));
@@ -33,13 +36,9 @@ export const createCliente = async (req, res, next) => {
   }
 
   try {
-    const [result] = await pool.query(
-      'INSERT INTO clientes (nome, sobrenome, email, idade) VALUES (?, ?, ?, ?)',
-      [nome, sobrenome, email, idade]
-    );
-    // Limpa o cache de clientes
+    const novoCliente = await ClienteService.create({ nome, sobrenome, email, idade });
     clearCache('/clientes');
-    res.status(201).json({ id: result.insertId, nome, sobrenome, email, idade });
+    res.status(201).json(novoCliente);
   } catch (error) {
     console.error('Erro detalhado:', error);
     if (error.code === 'ER_DUP_ENTRY') {
@@ -58,16 +57,12 @@ export const updateCliente = async (req, res, next) => {
   }
 
   try {
-    const [result] = await pool.query(
-      'UPDATE clientes SET nome = ?, sobrenome = ?, email = ?, idade = ? WHERE id = ?',
-      [nome, sobrenome, email, idade, req.params.id]
-    );
-    if (result.affectedRows === 0) {
+    const clienteAtualizado = await ClienteService.update(req.params.id, { nome, sobrenome, email, idade });
+    if (!clienteAtualizado) {
       return next(createError(404, 'Cliente não encontrado'));
     }
-    // Limpa o cache de clientes
     clearCache('/clientes');
-    res.json({ id: req.params.id, nome, sobrenome, email, idade });
+    res.json(clienteAtualizado);
   } catch (error) {
     console.error('Erro detalhado:', error);
     if (error.code === 'ER_DUP_ENTRY') {
@@ -80,11 +75,10 @@ export const updateCliente = async (req, res, next) => {
 
 export const deleteCliente = async (req, res, next) => {
   try {
-    const [result] = await pool.query('DELETE FROM clientes WHERE id = ?', [req.params.id]);
-    if (result.affectedRows === 0) {
+    const sucesso = await ClienteService.delete(req.params.id);
+    if (!sucesso) {
       return next(createError(404, 'Cliente não encontrado'));
     }
-    // Limpa o cache de clientes
     clearCache('/clientes');
     res.status(204).send();
   } catch (error) {
@@ -94,33 +88,13 @@ export const deleteCliente = async (req, res, next) => {
 };
 
 export const patchCliente = async (req, res, next) => {
-  const { nome, sobrenome, email, idade } = req.body;
-  const id = req.params.id;
-
   try {
-    // Primeiro, busca o cliente atual
-    const [current] = await pool.query('SELECT * FROM clientes WHERE id = ?', [id]);
-    if (current.length === 0) {
+    const clienteAtualizado = await ClienteService.patch(req.params.id, req.body);
+    if (!clienteAtualizado) {
       return next(createError(404, 'Cliente não encontrado'));
     }
-
-    // Prepara os dados atualizados
-    const updatedData = {
-      nome: nome || current[0].nome,
-      sobrenome: sobrenome || current[0].sobrenome,
-      email: email || current[0].email,
-      idade: idade || current[0].idade
-    };
-
-    // Atualiza apenas os campos fornecidos
-    const [result] = await pool.query(
-      'UPDATE clientes SET nome = ?, sobrenome = ?, email = ?, idade = ? WHERE id = ?',
-      [updatedData.nome, updatedData.sobrenome, updatedData.email, updatedData.idade, id]
-    );
-
-    // Limpa o cache
     clearCache('/clientes');
-    res.json({ id, ...updatedData });
+    res.json(clienteAtualizado);
   } catch (error) {
     console.error('Erro detalhado:', error);
     if (error.code === 'ER_DUP_ENTRY') {
@@ -129,4 +103,14 @@ export const patchCliente = async (req, res, next) => {
       next(createError(500, `Erro ao atualizar cliente: ${error.message}`));
     }
   }
-}; 
+};
+
+// Rotas
+router.get('/', getClientes);
+router.get('/:id', getClienteById);
+router.post('/', createCliente);
+router.put('/:id', updateCliente);
+router.delete('/:id', deleteCliente);
+router.patch('/:id', patchCliente);
+
+export default router; 
