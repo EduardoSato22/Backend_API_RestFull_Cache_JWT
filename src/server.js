@@ -12,6 +12,11 @@ app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
 
+// Rota padrão
+app.get('/', (req, res) => {
+  res.json({ message: 'API ativa' });
+});
+
 // Rotas
 app.use('/produtos', produtosRouter);
 app.use('/clientes', clientesRouter);
