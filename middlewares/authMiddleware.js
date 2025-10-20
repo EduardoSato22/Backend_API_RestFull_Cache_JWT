@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const userService = require('../services/userService');
+const databaseService = require('../configs/database-config');
 
 const verifyToken = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -13,7 +13,7 @@ const verifyToken = async (req, res, next) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         
         // Verifica se o token ainda é o mesmo no banco de dados
-        const user = await userService.findUserByToken(token);
+        const user = await databaseService.findUserByUsername(decoded.usuario);
         if (!user || user.id !== decoded.id) {
             return res.status(401).json({ message: 'Token inválido ou expirado (logout).' });
         }

@@ -1,4 +1,4 @@
-const userService = require('../services/userService');
+const databaseService = require('../configs/database-config');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
@@ -8,7 +8,8 @@ const createUser = async (req, res) => {
     if (!usuario || !senha) {
       return res.status(400).json({ message: 'Usuário e senha são obrigatórios.' });
     }
-    const newUser = await userService.createUser(usuario, senha);
+    const hashedPassword = await bcrypt.hash(senha, 10);
+    const newUser = await databaseService.createUser({ usuario, senha: hashedPassword });
     res.status(201).json(newUser);
   } catch (error) {
     res.status(500).json({ message: 'Erro ao criar usuário.', error: error.message });
@@ -17,7 +18,7 @@ const createUser = async (req, res) => {
 
 const getUsers = async (req, res) => {
   try {
-    const users = await userService.getUsers();
+    const users = await databaseService.getAllUsers();
     res.status(200).json(users);
   } catch (error) {
     res.status(500).json({ message: 'Erro ao listar usuários.', error: error.message });
@@ -27,15 +28,13 @@ const getUsers = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { usuario, senha } = req.body;
-        const user = await userService.findUserByUsername(usuario);
+        const user = await databaseService.findUserByUsername(usuario);
 
         if (!user || !(await bcrypt.compare(senha, user.senha))) {
             return res.status(401).json({ message: 'Usuário ou senha inválida.' });
         }
 
         const token = jwt.sign({ id: user.id, usuario: user.usuario }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        
-        await userService.saveUserToken(user.id, token);
 
         res.status(200).json({ auth: true, token });
     } catch (error) {
@@ -45,11 +44,8 @@ const login = async (req, res) => {
 
 const logout = async (req, res) => {
     try {
-        const token = req.headers['authorization']?.split(' ')[1];
-        if (!token) {
-            return res.status(400).json({ message: 'Token não fornecido.' });
-        }
-        await userService.clearUserToken(token);
+        // Para Supabase, não precisamos gerenciar tokens no servidor
+        // O JWT é stateless, então o logout é apenas no frontend
         res.status(200).json({ message: 'Logout bem-sucedido.' });
     } catch (error) {
         res.status(500).json({ message: 'Erro no logout.', error: error.message });

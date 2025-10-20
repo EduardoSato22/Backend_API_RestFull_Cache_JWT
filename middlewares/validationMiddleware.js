@@ -43,17 +43,39 @@ const clientValidationRules = () => {
 
 const productValidationRules = () => {
     return [
-        body('nome').isString().isLength({ min: 3, max: 255 }).withMessage('Nome do produto deve ter entre 3 e 255 caracteres.'), // 
-        body('descricao').isString().isLength({ min: 3, max: 255 }).withMessage('Descrição deve ter entre 3 e 255 caracteres.'), // 
-        body('preco').isFloat({ gt: 0 }).withMessage('Preço deve ser um número positivo.'), // 
+        body('nome')
+            .isString()
+            .isLength({ min: 3, max: 255 })
+            .withMessage('Nome do produto deve ter entre 3 e 255 caracteres.'),
+        body('descricao')
+            .optional({ nullable: true })
+            .isString()
+            .isLength({ min: 3, max: 2000 })
+            .withMessage('Descrição deve ter entre 3 e 2000 caracteres.'),
+        body('preco')
+            .isFloat({ gt: 0 })
+            .withMessage('Preço deve ser um número positivo.'),
+        body('categoria')
+            .optional({ nullable: true })
+            .isString()
+            .isLength({ min: 0, max: 100 })
+            .withMessage('Categoria deve ter no máximo 100 caracteres.'),
+        body('estoque')
+            .optional({ nullable: true })
+            .isInt({ min: 0 })
+            .withMessage('Estoque deve ser um inteiro >= 0.'),
+        body('image_url')
+            .optional({ nullable: true })
+            .isURL().withMessage('image_url deve ser uma URL válida.'),
         body('data_atualizado')
+            .optional({ nullable: true })
             .isISO8601().withMessage('A data deve estar no formato ISO8601.')
             .custom((value) => {
                 const date = new Date(value);
                 const minDate = new Date('2000-01-01T00:00:00.000Z');
-                const maxDate = new Date('2025-06-20T23:59:59.999Z');
+                const maxDate = new Date('2100-12-31T23:59:59.999Z');
                 if (date < minDate || date > maxDate) {
-                    throw new Error('Data deve ser entre 01/01/2000 e 20/06/2025.');
+                    throw new Error('Data deve ser entre 01/01/2000 e 31/12/2100.');
                 }
                 return true;
             }),

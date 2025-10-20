@@ -1,4 +1,4 @@
-const clientService = require('../services/clientService');
+const databaseService = require('../configs/database-config');
 const cache = require('../services/cacheService');
 
 const CACHE_KEY = 'clientes';
@@ -10,7 +10,7 @@ const getAllClients = async (req, res) => {
       return res.status(200).json(cachedClients);
     }
 
-    const clients = await clientService.getAllClients();
+    const clients = await databaseService.getAllClients();
     cache.set(CACHE_KEY, clients);
     res.status(200).json(clients);
   } catch (error) {
@@ -20,7 +20,7 @@ const getAllClients = async (req, res) => {
 
 const getClientById = async (req, res) => {
   try {
-    const client = await clientService.getClientById(req.params.id);
+    const client = await databaseService.getClientById(req.params.id);
     if (!client) {
       return res.status(404).json({ message: 'Cliente não encontrado.' });
     }
@@ -32,7 +32,7 @@ const getClientById = async (req, res) => {
 
 const createClient = async (req, res) => {
   try {
-    const newClient = await clientService.createClient(req.body);
+    const newClient = await databaseService.createClient(req.body);
     cache.del(CACHE_KEY); // Invalida o cache
     res.status(201).json(newClient);
   } catch (error) {
@@ -42,7 +42,7 @@ const createClient = async (req, res) => {
 
 const updateClient = async (req, res) => {
   try {
-    const updatedClient = await clientService.updateClient(req.params.id, req.body);
+    const updatedClient = await databaseService.updateClient(req.params.id, req.body);
     if (!updatedClient) {
         return res.status(404).json({ message: 'Cliente não encontrado.' });
     }
@@ -55,7 +55,7 @@ const updateClient = async (req, res) => {
 
 const deleteClient = async (req, res) => {
   try {
-    await clientService.deleteClient(req.params.id);
+    await databaseService.deleteClient(req.params.id);
     cache.del(CACHE_KEY); // Invalida o cache
     res.status(204).send();
   } catch (error) {

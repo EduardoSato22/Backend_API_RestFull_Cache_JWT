@@ -14,8 +14,14 @@
     <main>
         <section>
             <h2>Produtos Disponíveis (Acesso Público)</h2>
+            <div id="cache-info"></div>
             <div id="products-list" class="data-list">
                 <p>Carregando produtos...</p>
+            </div>
+            <div style="margin-top: 20px;">
+                <button onclick="refreshProducts()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    🔄 Atualizar Produtos
+                </button>
             </div>
         </section>
     </main>
